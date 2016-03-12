@@ -1,36 +1,12 @@
-# # Data preprocessing
-# It allows to create new variables that are more related to the dependent variables. 
-# It is also possible to modify the independent variables to diminish the effect of outliers.
-# 
-# The tables containing the new data are saved in Qtraining.csv and Qscoring.csv
-# 
-# ## Making all the variables quantitative
-# To make all the variables quantitative we take all the values that are yes/no, pos/neg F/M and convert them to 1 and 0. 
-# In the case that there is no data or not conclusive data we use NaN (from numpy). 
-# 
-# In the special case of cyto.cat that has multiple values we create a column for each unique value. 
-# Each column contains 1 or 0 depending depending if the data corresponds to that unique value or not.
-# 
-# ## Preprocessing data for proteins
-# Sometimes a low concentration, as well as a high concentration of the protein can cause illness. 
-# If both a high value and a low value can have the same effect on the dependent variables, then there will not be a good correlation. 
-# So we are comparing the protein against the mean and squaring the result. (What i mistakenly called normalized)
-# Since the mean is expected to be 0 because the data of all the proteins are mean centered, squaring the result should be similar to the "Normalization", what I am calling now "Squared"
-# 
-# ## Cutoff of Dependent data.
-# If a patient lives longer than 2 years or has a remission longer than 2 years is considered as a category.
-# Some patients have much longer periods, that may be independent of any variable, because the patient is still alive.
-# We don't want this data interfering with the prediction, so we may suppose that all the patients that live longer than 2 years and a half (130 weeks) live just 130 weeks.
-# We can apply the same logic for Remission.
-# 
-# ## To Do
-# It is possible to do also a pca analysis (maybe on protenis) and use the pca columns.
-# It is also possible to use threeshold values (for example if x=1 if x>0.4 else 0). 
-# It is also possible to square the protein data, changing the mean, from 0 to another value.
-# This new value may be chossen to maximize the correlation between the dependent and independent variables.
 
+# coding: utf-8
+
+# In[1]:
 
 import numpy,pandas
+from sklearn.decomposition import PCA
+import numpy as np
+
 #For the preprocessing we need the data from Dream9.xlsx
 Dream9_training=pandas.read_excel('Dream9.xlsx',"trainingData") 
 Dream9_scoring=pandas.read_excel('Dream9.xlsx',"scoringData")
@@ -53,8 +29,6 @@ Categorical=['SEX', 'PRIOR.MAL', 'PRIOR.CHEMO', 'PRIOR.XRT', 'Infection', 'cyto.
 #The last 231 variables are proteins
 Protein=All[-231:]
 
-
-
 ###############
 #  Functions  #
 ###############
@@ -74,6 +48,12 @@ def alias(Series,aliases):
                 new_Series[key]=aliases[val]
                 break
     return new_Series
+
+def make_pca(Table,All_Data,n,name='PCA'):
+    pca = PCA(n_components=n)
+    pca.fit(All_Data[Table.keys()])
+    trans_PCA=pca.transform(Table)
+    return pandas.DataFrame(trans_PCA,columns=['%s_%i'%(name,i+1) for i in range(n)],index=Table.index)
 
 def split(Series,All_Data):
     #For Series with multiple values, creates a table with a column for each unique value
@@ -115,13 +95,21 @@ def cutoff(Series,cutoff):
             new_Series[key]=data
     new_Series.name='%s_cut'%Series.name
     return new_Series
-    
+
+def binned(Series,bins=[0,52,104]):
+    #This function will bin the results from Remission and Overall Survival as expected    
+    bins = numpy.array(bins)
+    digitized = list(numpy.digitize(Series, bins))
+    for i,v in enumerate(Series):
+        if numpy.isnan(v):
+            digitized[i]=numpy.nan
+    return pandas.Series(digitized,index=Series.index,name='%s_binned'%Series.name)*52-26
 ####################
 #  Pre-processing  #
 ####################    
     
 def PreProcess(table,Dream9):
-    #Select all variables that are not caregorical
+    #Select all variables that are not Categorical
     Tables=[table[[v for v in table.keys() if v not in Categorical]]]
     
     #Convert yes/no to 1/0
@@ -143,8 +131,8 @@ def PreProcess(table,Dream9):
     
     #Create new data for protein
     Tables+=[squared(table[Protein])]
-    
-    #Join everything
+    Tables+=[make_pca(table[Protein],Dream9,200)]
+    Tables+=[make_pca(squared(table[Protein]),squared(Dream9[Protein]),200,name='PCA_Sq')]
     
     Cut=[]
     for key in ['Overall_Survival','Remission_Duration']:
@@ -152,9 +140,19 @@ def PreProcess(table,Dream9):
             Cut+=[cutoff(table[key],130)]
     if len(Cut)>0:
         Tables+=[pandas.concat(Cut,axis=1)]
-
+        
+    Bin=[]
+    for key in ['Overall_Survival','Remission_Duration']:
+        if key in table.keys():
+            Bin+=[binned(table[key])]
+    if len(Bin)>0:
+        Tables+=[pandas.concat(Bin,axis=1)]
+    
+    
+    #Join everything
     return pandas.concat(Tables,axis=1)
 
+Q_Dependent=Dependent+['Overall_Survival_cut','Remission_Duration_cut','Overall_Survival_binned','Remission_Duration_binned']
 if __name__=='__main__':
    
     #This part is to test the function
@@ -175,3 +173,190 @@ if __name__=='__main__':
     #Number of columns and rows of new Table
     print Q_training.shape
     print Q_scoring.shape
+    #A=binned(Dream9_training['Remission_Duration'])
+
+
+# In[2]:
+
+Q_Dependent=[v for v in Q_training.keys() if v not in Q_scoring.keys()]
+Q_Dependent
+
+
+# In[3]:
+
+if __name__=='__main__':
+    #Correlation for Continuous variables
+    Corr=pandas.DataFrame()
+    for Variable in Q_Dependent:
+        C=Q_training[[t for t in Q_training.keys() if (t not in Q_Dependent)]+[Variable]].corr()[Variable][:-1]
+        Corr=Corr.append(C)
+    #Write correlation as csv
+    Corr.T.to_csv('Correlations.csv')
+
+
+# In[4]:
+
+if __name__=='__main__':
+    #Most important Variables in Correlation
+    for Variable in Q_Dependent:
+        A=Corr.T[Variable]**2
+        A.sort(ascending=False)
+        print Corr[A.head().index].T[Variable]
+
+
+# In[ ]:
+
+if __name__=='__main__':
+    import numpy as np
+    import matplotlib.pyplot as plt
+    from mpl_toolkits.mplot3d import Axes3D
+    import matplotlib
+    get_ipython().magic(u'matplotlib inline')
+
+    x = -Q_training['Age.at.Dx']
+    y = Q_training['HGB']
+    z = -Q_training['PCA_Sq_151']
+    area = Q_training['cyto.cat=diploid']*25+75 # 0 to 15 point radiuses
+    colors = Q_training['resp.simple']
+
+    fig = plt.figure()
+    ax = fig.add_subplot(111, projection='3d')
+    ax.set_xlabel(x.name)
+    ax.set_ylabel(y.name)
+    ax.set_zlabel(z.name)
+    ax.scatter(x, y, z,s=area, c=colors,cmap=matplotlib.cm.coolwarm_r)
+    #Blue is 1 and red is 0
+    plt.show()
+
+
+# In[ ]:
+
+#Calculate how much information in gained on each column
+#Calculate the entropy of the subset
+def information_gain(Table,Dependent,Independent):
+    Table=Table[Table[Dependent].notnull()]
+    freq=[]
+    for dval in Table[Dependent].unique():
+        freq+=[sum(Table[Dependent]==dval)]
+    Freq=[float(f)/sum(freq) for f in freq]
+    E=0
+    for f in Freq:
+        E+=-f*np.log(f)/np.log(2)
+    #print 'Subset Entropy:', E
+    Vars=[]
+
+    #Calculate the entropy of each variable
+    for ind in Independent:     
+        if ind in Categorical:
+            IG=E
+            for ival in Table[ind].unique():
+                if np.isnan(ival):
+                    continue
+                SubTable=Table[Table[ind]==ival]
+                #print SubTable
+                freq=[]
+                for dval in Table[Dependent].unique():
+                    freq+=[sum(SubTable[Dependent]==dval)]
+                Freq=[float(f)/sum(freq) for f in freq]
+                #print Freq
+                ES=0
+                for f in Freq:
+                    ES+=-f*np.log(f)/np.log(2) if f<>0 else 0
+                #print ES
+                IG-=float(len(SubTable))/len(Table)*ES
+            #print 'Information gain from %s: %f'%(ind,IG)
+            Vars+=[(IG,ind)]
+        else:
+            Threeshold=[]
+            prev_SubTableA_len=0
+            for ival in np.arange(min(Table[ind]),max(Table[ind]),(max(Table[ind])-min(Table[ind]))/500.0):
+                IG=E
+                SubTableA=Table[Table[ind]<ival]
+                SubTableB=Table[Table[ind]>=ival]
+                if len(SubTableA)<1 or len(SubTableB)<1:
+                    continue
+                if len(SubTableA)==prev_SubTableA_len:
+                    continue
+                else:
+                    prev_SubTableA_len=len(SubTableA)
+                freq=[]
+                for dval in Table[Dependent].unique():
+                    freq+=[sum(SubTableA[Dependent]==dval)]
+                Freq=[float(f)/sum(freq) for f in freq]
+                #print Freq
+                ES=0
+                for f in Freq:
+                    ES+=-f*np.log(f)/np.log(2) if f<>0 else 0
+                #print ES
+                IG-=float(len(SubTableA))/len(Table)*ES
+                #print SubTable
+                freq=[]
+                for dval in Table[Dependent].unique():
+                    freq+=[sum(SubTableB[Dependent]==dval)]
+                Freq=[float(f)/sum(freq) for f in freq]
+                #print Freq
+                ES=0
+                for f in Freq:
+                    ES+=-f*np.log(f)/np.log(2) if f<>0 else 0
+                #print ES
+                IG-=float(len(SubTableB))/len(Table)*ES
+                Threeshold+=[(IG,ival)]
+            Threeshold.sort(reverse=True)
+            #print Threeshold
+            #break
+            #print 'Information gain from %s: %f at theeshold:%f'%(ind,Threeshold[0][0],Threeshold[0][1])
+            if len(Threeshold)>0:
+                Vars+=[(Threeshold[0][0],ind,Threeshold[0][1])]
+            else:
+                Vars+=[(0,ind)]
+    Information_gain=pandas.Series([v[0] for v in Vars],index=[v[1] for v in Vars],name='Information Gain')
+    Threesholds=pandas.Series([v[2] for v in Vars if len(v)>2],index=[v[1] for v in Vars if len(v)>2],name='Threeshold')
+    return pandas.concat([Information_gain,Threesholds],axis=1)
+
+if __name__=='__main__':
+    Q_Cat=['resp.simple','Relapse','vital.status','Overall_Survival_binned','Remission_Duration_binned']
+    Ts=[]
+    for Variable in Q_Cat:
+        print Variable
+        Independent=[v for v in Q_training.keys() if v in Q_scoring.keys()]
+        Ts+=[information_gain(Q_training,Variable,Independent)]
+    Information_Gain=pandas.concat(Ts,keys=Q_Cat,axis=1)
+    Information_Gain.to_csv('InformationGain.csv')
+
+
+# In[ ]:
+
+#Most important variables in Information Gain
+if __name__=='__main__':
+    for Variable in Q_Cat:
+        A=Information_Gain[Variable]
+        A=A.sort('Information Gain',ascending=False)
+        A.name=Variable
+        print Variable
+        print A.head()
+
+
+# In[ ]:
+
+if __name__=='__main__':
+    import numpy as np
+    import matplotlib.pyplot as plt
+    from mpl_toolkits.mplot3d import Axes3D
+    import matplotlib
+    get_ipython().magic(u'matplotlib inline')
+
+    x = -Q_training['Ras.Stat']
+    y = Q_training['NPM1.3542']
+    z = -Q_training['FIBRINOGEN']
+    area = Q_training['PCA_Sq_38']*25+75 # 0 to 15 point radiuses
+    colors = Q_training['resp.simple']
+
+    fig = plt.figure()
+    ax = fig.add_subplot(111, projection='3d')
+    ax.set_xlabel(x.name)
+    ax.set_ylabel(y.name)
+    ax.set_zlabel(z.name)
+    ax.scatter(x, y, z,s=area, c=colors,cmap=matplotlib.cm.coolwarm_r)
+    #Blue is 1 and red is 0
+    plt.show()
+
