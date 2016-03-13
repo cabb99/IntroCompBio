@@ -178,8 +178,9 @@ if __name__=='__main__':
 
 # In[2]:
 
+Q_training=PreProcess(Dream9_training,Dream9)
+Q_scoring=PreProcess(Dream9_scoring,Dream9)
 Q_Dependent=[v for v in Q_training.keys() if v not in Q_scoring.keys()]
-Q_Dependent
 
 
 # In[3]:
@@ -204,7 +205,7 @@ if __name__=='__main__':
         print Corr[A.head().index].T[Variable]
 
 
-# In[ ]:
+# In[5]:
 
 if __name__=='__main__':
     import numpy as np
@@ -229,7 +230,7 @@ if __name__=='__main__':
     plt.show()
 
 
-# In[ ]:
+# In[6]:
 
 #Calculate how much information in gained on each column
 #Calculate the entropy of the subset
@@ -324,7 +325,7 @@ if __name__=='__main__':
     Information_Gain.to_csv('InformationGain.csv')
 
 
-# In[ ]:
+# In[7]:
 
 #Most important variables in Information Gain
 if __name__=='__main__':
@@ -336,7 +337,7 @@ if __name__=='__main__':
         print A.head()
 
 
-# In[ ]:
+# In[8]:
 
 if __name__=='__main__':
     import numpy as np
