@@ -1,14 +1,14 @@
 
 # coding: utf-8
 
-# In[102]:
+# In[1]:
 
 import PreProcessing
 from Prediction import AIPrediction
-import pandas
+import pandas,json
 
 
-# In[103]:
+# In[2]:
 
 #Define Prediction name
 Pname='LinearRegression'
@@ -34,35 +34,18 @@ Slow_measure={'pCR':'BAC',
               'Remission':'BAC'}
 
 #Select max time in hours to run the prediction
-max_time_h= 8#Max number of hours that you can run the simulation
+max_time_h= 5/60.0#Max number of hours that you can run the simulation
 
 
-# In[104]:
+# In[3]:
 
 #Read prediction bias
 Var_value=pandas.DataFrame.from_csv('Variable_value.csv')
 
 
-# In[105]:
+# In[4]:
 
-#Define prediction class
-from sklearn import linear_model
-Pred=AIPrediction(pivot=Good_variables,method=linear_model.LinearRegression())
-print Pred.result(rep=10)
-
-
-# In[106]:
-
-#Define Best Prediction
-Pred.pivot=Good_variables
-groups=Pred.create_groups(50)
-Best_scores=Pred.score(groups=groups,Measure=tuple(set(Slow_measure.values())))
-Best_result=Pred.accuracy(groups=groups,Measure=Fast_measure)
-
-
-# In[112]:
-
-if True:
+if True: #Use Previous Good Variables
     #Open Good variables if it exists
     try:
         with open('Good_variables_%s.json'%Pname) as handle:
@@ -70,6 +53,8 @@ if True:
     except IOError:
         print 'Did not found previous good variables'
         pass
+    
+if True:#Use previous prefiction bias
     #Open Variable values if it exists
     try:
         pandas.DataFrame.from_csv('Var_value_%s.csv'%Pname)
@@ -78,7 +63,24 @@ if True:
         pass
 
 
-# In[108]:
+# In[5]:
+
+#Define prediction class
+from sklearn import linear_model
+Pred=AIPrediction(pivot=Good_variables,method=linear_model.LinearRegression())
+print Pred.result(rep=10)
+
+
+# In[6]:
+
+#Define Best Prediction
+Pred.pivot=Good_variables
+groups=Pred.create_groups(50)
+Best_scores=Pred.score(groups=groups,Measure=tuple(set(Slow_measure.values())))
+Best_result=Pred.accuracy(groups=groups,Measure=Fast_measure)
+
+
+# In[7]:
 
 #Define Biased Sample
 import random,numpy
@@ -117,7 +119,7 @@ def biased_sample(variables,k,bias):
     return result
 
 
-# In[110]:
+# In[8]:
 
 #Evolution algorithm
 import time,json
@@ -238,9 +240,14 @@ while time.time()<Stop:
             handle.write(json.dumps(Good_variables))
 
 
-# In[111]:
+# In[9]:
 
 print 'iter',i
 Pred.pivot=Good_variables
 print Pred.result(rep=10)
+
+
+# In[10]:
+
+Pred.predict()
 
