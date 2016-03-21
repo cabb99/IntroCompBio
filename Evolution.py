@@ -161,7 +161,11 @@ while time.time()<Stop:
 
     #Update Test_variables
     Pred.pivot=Test_variables
-    Test_result=Pred.accuracy(groups=groups[:10],Measure=Fast_measure) #Fast measure
+    try:    
+        Test_result=Pred.accuracy(groups=groups[:10],Measure=Fast_measure) #Fast measure
+    except KeyError:
+        groups=Pred.create_groups(50)        
+        continue
     
     #Test against best prediction
     Next=True
@@ -193,10 +197,14 @@ while time.time()<Stop:
         for var in change_variables[key]:
             if Var_value[key][var]>0.02 and Var_value[key][var]<2.0:
                 Var_value[key][var]*=rew[key]
-            if Var_value[key][var]<0.02:
+            if Var_value[key][var]<0.02 and Var_value[key][var]>0:
                 Var_value[key][var]=0.02
             if Var_value[key][var]>2.0:
                 Var_value[key][var]=2.0
+   
+    #Add another bias to allow unused variables to be used again
+    #To Be Done
+
     #Write to csv
     Var_value.to_csv('Var_value_%s.csv'%Pname)
     
