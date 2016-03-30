@@ -116,7 +116,7 @@ class Prediction:
     def _bin(self,data,bins=[0,52,104]):
         #This function will bin the results from Remission and Overall Survival as expected    
         bins = numpy.array(bins)
-        digitized = numpy.digitize(data, bins)
+        digitized = numpy.digitize(data.convert_objects(convert_numeric=True), bins)
         for i,v in enumerate(data):
             if numpy.isnan(v):
                 digitized[i]=0
@@ -323,11 +323,14 @@ class Prediction:
     
     def _expectedScore(self,predicted,expected,norm=1):
         A=pandas.concat([predicted,expected],axis=1,keys=['pred','exp'])
+        len1=len(A)
         A=A.dropna() #drop data that has na as a result
+        len2=len(A)
+        missing_values=len1-len2
         p=A['pred']
         a=A['exp']
         #print len(p),len(predicted),len(Scoring_set),len(Scoring_set)/float(len(predicted))
-        return (sum(((p-a)/norm)**2)*len(Scoring_set)/float(len(predicted)))**0.5 #*len(p)/len(predicted)*len(Scoring_set)
+        return (sum(((p-a)/norm+missing_values)**2)*len(Scoring_set)/float(len(predicted)))**0.5 #*len(p)/len(predicted)*len(Scoring_set)
 
 if __name__=='__main__':
    
