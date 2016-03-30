@@ -7,15 +7,14 @@ import pandas,json
 # Parameters #
 ##############
 
-
 #Define Prediction name
-Pname='LinearRegressionv2'
+Pname='LinearRegressionv3'
 
 #Select Dependent Variables
 Variables_for_prediction={'pCR':'resp.simple',
                           'pRelapse':'Relapse',
-                          'OS':'Overall_Survival_cut',
-                          'Remission':'Remission_Duration_cut'}
+                          'OS':'Overall_Survival',
+                          'Remission':'Remission_Duration'}
 
 #Number of entities in the population
 Entities=500
@@ -25,7 +24,7 @@ Entities=500
 #Select scoring measure to use for minimization
 Fast_measure='Scr' #Select between BAC PCC or Scr. You can select two Measures, 
                        #the second measure will overwrite the first one. ('BAC','Auroc')
-n_groups =3 #The number of groups tested on each iteration. Select a small number 
+n_groups =2 #The number of groups tested on each iteration. Select a small number 
             #for the genetic algorithm and a big number to choose 
             #the final Good variables for Prediction
 
@@ -277,19 +276,19 @@ while True:
             #print points
             #expected_points=max_points/float(c) if c>0 else 0
             if method<>'Elitist' and method<>'Deletion':
-                Method_freq[dep][method]=int(round(Entities/20+points/max_points*(l-m*(Entities/20))))
+                Method_freq[dep][method]=int(round(Entities/20+points/max_points*(Entities-m*(Entities/20))))
             else:
-                Method_freq[dep][method]=min(int(round(Entities/20+points/max_points*(l-m*(Entities/20)))),Entities/10)
+                Method_freq[dep][method]=min(int(round(Entities/20+points/max_points*(Entities-m*(Entities/20)))),Entities/10)
         for i in range(Entities+10):
             if sum(Method_freq[dep])<Entities:
                 Method_freq[dep][random.sample(Method_freq[dep].keys(),1)[0]]+=1
             elif sum(Method_freq[dep])>Entities:
-                meth=random.sample(Method_freq[dep].keys(),1)[0]
+                meth=random.sample(Method_freq[dep][Method_freq[dep]>1].keys(),1)[0]
                 if Method_freq[dep][meth]>1:
                     Method_freq[dep][meth]-=1
             else:
                 break
-            assert i<Entities+8,'Can not obtain just %i'%meth
+            assert i<Entities+8,'Can not obtain just %i'%Entities
     #print method,points
     #Method_freq[dep][method]=1+int(points/max_points/c*(Entities-2*len(Method_freq[dep].keys())))
 
@@ -333,7 +332,7 @@ while True:
                     ParentA=Sorted_population[dep][A] #Select the variable groups
                     l=len(ParentA)
                     n=max(l-random.randint(1,5),5)
-                    new_variables=biased_sample(ParentA,n,1/(Var_value[dep]+1))
+                    new_variables=biased_sample(ParentA,n,Var_value[dep])
                     ps[dep]+=[new_variables]
                 elif method=='Mutation':
                     #Select one variable group and add and remove the same number of variables
@@ -344,13 +343,13 @@ while True:
                     l=len(ParentA)
                     n=max(l-random.randint(1,3),3)
                     new_variables=biased_sample(var2add,l-n,Var_value[dep])
-                    New_Parent=biased_sample(ParentA,n,1/(Var_value[dep]+1))
+                    New_Parent=biased_sample(ParentA,n,Var_value[dep])
                     ps[dep]+=[New_Parent+new_variables]                    
                 elif method=='Sample':
                     ps[dep]+=[biased_sample(variables,random.randint(5,25),Var_value[dep])]
 
-    Population=[dict(zip(ps.keys(),v)) for v in zip(*[ps[key] for key in keys])]
-    Generation_method=[dict(zip(ms.keys(),v)) for v in zip(*[ms[key] for key in keys])]
+    Population=[dict(zip(keys,v)) for v in zip(*[ps[key] for key in keys])]
+    Generation_method=[dict(zip(keys,v)) for v in zip(*[ms[key] for key in keys])]
     with open('Population_%s.json'%Pname,'w+') as handle:
         handle.write(json.dumps(Population))
     with open('Generation_method_%s.json'%Pname,'w+') as handle:
@@ -411,7 +410,8 @@ for dep in Method_freq.keys():
                 Method_freq[dep][meth]-=1
         else:
             break
-        assert i<Entities+8,'Can not obtain just %i'%meth
+	print i,Entities,meth        
+	assert i<Entities+8,'Can not obtain just %i'%meth
 Method_freq
         
 
