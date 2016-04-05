@@ -8,7 +8,7 @@ import pandas,json
 ##############
 
 #Define Prediction name
-Pname='LinearRegressionv3'
+Pname='RandomForestRegresorv2'
 
 #Select Dependent Variables
 Variables_for_prediction={'pCR':'resp.simple',
@@ -17,14 +17,14 @@ Variables_for_prediction={'pCR':'resp.simple',
                           'Remission':'Remission_Duration'}
 
 #Number of entities in the population
-Entities=500
+Entities=250
 
 #max_time_h= 5/60.0#Max number of hours that you can run the simulation
 
 #Select scoring measure to use for minimization
 Fast_measure='Scr' #Select between BAC PCC or Scr. You can select two Measures, 
                        #the second measure will overwrite the first one. ('BAC','Auroc')
-n_groups =2 #The number of groups tested on each iteration. Select a small number 
+n_groups =1 #The number of groups tested on each iteration. Select a small number 
             #for the genetic algorithm and a big number to choose 
             #the final Good variables for Prediction
 
@@ -39,10 +39,15 @@ n_groups =2 #The number of groups tested on each iteration. Select a small numbe
 #Prediction_arguments={'alpha':'1.0'}
 
 ###Linear Regression
-from sklearn import datasets, linear_model
-Prediction_Method=linear_model.LinearRegression
+from sklearn.ensemble import RandomForestRegressor
+Prediction_Method=RandomForestRegressor
 Prediction_arguments={}
 binned=False
+
+#from sklearn import datasets, linear_model
+#Prediction_Method=linear_model.LinearRegression
+#Prediction_arguments={}
+#binned=False
 
 ###Random Forest Classifier
 #from sklearn.ensemble import RandomForestClassifier
