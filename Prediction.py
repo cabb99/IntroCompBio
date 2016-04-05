@@ -313,13 +313,16 @@ class Prediction:
     
     def _pPCC(self,predicted,expected): #Pearson Correlation Coeficient
         A=pandas.concat([predicted,expected],axis=1,keys=['pred','exp'])
+        len1=len(A)
         A=A.dropna() #drop data that has na as a result
+        len2=len(A)
+        missing_values=len1-len2
         p=A['pred'].mean()
         a=A['exp'].mean()
         sp=max(((A['pred']-p)**2).sum()**0.5,1E-64) #Sometimes this is 0, then S=0 too
         sa=max(((A['exp']-a)**2).sum()**0.5,1E-64) #Sometimes this is 0, then S=0 too
         S=(A['pred']-p)*(A['exp']-a)
-        return (S.sum()/sp/sa+1)/2
+        return (S.sum()/(sp*sa+missing_values)+1)/2
     
     def _expectedScore(self,predicted,expected,norm=1):
         A=pandas.concat([predicted,expected],axis=1,keys=['pred','exp'])
@@ -330,7 +333,7 @@ class Prediction:
         p=A['pred']
         a=A['exp']
         #print len(p),len(predicted),len(Scoring_set),len(Scoring_set)/float(len(predicted))
-        return (sum(((p-a)/norm+missing_values)**2)*len(Scoring_set)/float(len(predicted)))**0.5 #*len(p)/len(predicted)*len(Scoring_set)
+        return ((sum(((p-a)/norm)**2)+missing_values)*len(Scoring_set)/float(len(predicted)))**0.5 #*len(p)/len(predicted)*len(Scoring_set)
 
 if __name__=='__main__':
    
