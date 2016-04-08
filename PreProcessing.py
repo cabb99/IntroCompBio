@@ -3,7 +3,7 @@
 
 # # Preprocessing
 
-# In[1]:
+# In[28]:
 
 import numpy,pandas
 from sklearn.decomposition import PCA
@@ -31,8 +31,8 @@ Categorical=['SEX', 'PRIOR.MAL', 'PRIOR.CHEMO', 'PRIOR.XRT', 'Infection', 'cyto.
 #The last 231 variables are proteins
 Protein=All[-231:]
 
-Trial_data=Dream9_training[Protein[:4]+Categorical[:4]+['cyto.cat']+Dependent].head()
-Trial_data.T
+#Trial_data=Dream9_training[Protein[:4]+Categorical[:4]+['cyto.cat']+Dependent].head()
+#Trial_data.T
 
 
 # ## Categorical variables
@@ -75,11 +75,11 @@ def split(Series,All_Data):
     return pandas.concat(D,axis=1)
 
 #Example
-Alias_Dict={'SEX':{'F':1},'PRIOR.MAL':{'YES':1},'PRIOR.CHEMO':{'YES':1},'PRIOR.XRT':{'YES':1},
-                'Infection':{'Yes':1},'ITD':{'POS':1,'ND':numpy.nan},'D835':{'POS':1,'ND':numpy.nan},
-                'Ras.Stat':{'POS':1,'NotDone':numpy.nan},'resp.simple':{'CR':1},'Relapse':{'Yes':1},
-                'vital.status':{'A':1}}
-pandas.concat([Trial_data[Categorical[:4]+['cyto.cat']],alias(Trial_data,Alias_Dict),split(Trial_data['cyto.cat'],Dream9)],axis=1).T
+#Alias_Dict={'SEX':{'F':1},'PRIOR.MAL':{'YES':1},'PRIOR.CHEMO':{'YES':1},'PRIOR.XRT':{'YES':1},
+#                'Infection':{'Yes':1},'ITD':{'POS':1,'ND':numpy.nan},'D835':{'POS':1,'ND':numpy.nan},
+#                'Ras.Stat':{'POS':1,'NotDone':numpy.nan},'resp.simple':{'CR':1},'Relapse':{'Yes':1},
+#                'vital.status':{'A':1}}
+#pandas.concat([Trial_data[Categorical[:4]+['cyto.cat']],alias(Trial_data,Alias_Dict),split(Trial_data['cyto.cat'],Dream9)],axis=1).T
 
 
 # ## Transformations on protein values
@@ -107,7 +107,7 @@ def absolute(Table):
     return pandas.concat(D,axis=1)
 
 #Example
-pandas.concat([Trial_data[Protein[:4]],squared(Trial_data[Protein[:4]]),absolute(Trial_data[Protein[:4]])],axis=1).T
+#pandas.concat([Trial_data[Protein[:4]],squared(Trial_data[Protein[:4]]),absolute(Trial_data[Protein[:4]])],axis=1).T
 
 
 # ## Cutoff of Dependent Data
@@ -146,7 +146,7 @@ def binned(Table,bins=[0,52,104]):
         Tab+=[pandas.Series(digitized,index=Series.index,name='%s_binned'%Series.name)*52-26]
     return pandas.concat(Tab,axis=1)
 #Example
-pandas.concat([Trial_data[Dependent[-2:]],cutoff(Trial_data[Dependent[-2:]],130),binned(Trial_data[Dependent[-2:]])],axis=1).T
+#pandas.concat([Trial_data[Dependent[-2:]],cutoff(Trial_data[Dependent[-2:]],130),binned(Trial_data[Dependent[-2:]])],axis=1).T
 
 
 # ## PCA analysis
@@ -165,7 +165,7 @@ def make_pca(Table,All_Data,n,name='PCA_test',whiten=False):
     #pca.explained_variance_ratio_##pca.get_params()
     #Needs to return the PCA transformation
     return pandas.DataFrame(trans_PCA,columns=['%s_%i'%(name,i+1) for i in range(n)],index=Table.index)
-pandas.concat([Trial_data[Protein[:4]],make_pca(Trial_data[Protein[:4]],Dream9,3),make_pca(Trial_data[Protein[:4]],Dream9,2,'Whiten_PCA',True)],axis=1).T
+#pandas.concat([Trial_data[Protein[:4]],make_pca(Trial_data[Protein[:4]],Dream9,3),make_pca(Trial_data[Protein[:4]],Dream9,2,'Whiten_PCA',True)],axis=1).T
 
 
 # ## Binning of variables
@@ -198,7 +198,7 @@ def bin_independent(Table,All_Data,n,name='Binned'):
     return pandas.concat(Tab,axis=1)
 
 #bin_independent(Trial_data[Protein[:4]],Dream9,2)
-pandas.concat([Trial_data[Protein[:4]],bin_independent(Trial_data[Protein[:4]],Dream9,2),bin_independent(Trial_data[Protein[:4]],Dream9,3)],axis=1).T
+#pandas.concat([Trial_data[Protein[:4]],bin_independent(Trial_data[Protein[:4]],Dream9,2),bin_independent(Trial_data[Protein[:4]],Dream9,3)],axis=1).T
 
 
 # ## Not implemented
@@ -340,7 +340,7 @@ if __name__=='__main__':
 
 # ## Information gain of the variables
 
-# In[ ]:
+# In[27]:
 
 #Calculate how much information in gained on each column
 #Calculate the entropy of the subset
