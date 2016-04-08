@@ -282,8 +282,10 @@ if __name__=='__main__':
 
 # In[23]:
 
-Q_training=PreProcess(Dream9_training,Dream9)
-Q_scoring=PreProcess(Dream9_scoring,Dream9)
+#Q_training=PreProcess(Dream9_training,Dream9)
+#Q_scoring=PreProcess(Dream9_scoring,Dream9)
+Q_training=pandas.read_csv('Qtraining.csv')
+Q_scoring=pandas.read_csv('Qscoring.csv')
 Q_Dependent=[v for v in Q_training.keys() if v not in Q_scoring.keys()]
 
 
