@@ -6,7 +6,7 @@
 # In[28]:
 
 import numpy,pandas
-if __name__=='__main__'
+if __name__=='__main__':
     from sklearn.decomposition import PCA
     import numpy as np
 
