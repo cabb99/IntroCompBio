@@ -296,14 +296,15 @@ Q_scoring.index=list(Q_scoring_temp[Q_scoring_temp.keys()[0]])
 Dependent=[v for v in Q_training.keys() if v not in Q_scoring.keys()]
 
 
-# In[52]:
+# In[56]:
 
-1869+200
+27+231
 
 
-# In[55]:
+# In[59]:
 
 #Define types of variables
+
 Protein=list(Q_training.keys()[27:27+231])
 Categorical=['SEX', 'PRIOR.MAL', 'PRIOR.CHEMO', 'PRIOR.XRT', 'Infection', 
              'ITD', 'D835', 'Ras.Stat', 'resp.simple', 'Relapse', 'vital.status'] + list(Q_training.keys()[269:283])
@@ -318,11 +319,7 @@ Protein_Binned5=list(Q_training.keys()[1438:1438+231])
 Protein_PCA=list(Q_training.keys()[1669:1669+200])
 Protein_PCAWhiten=list(Q_training.keys()[1869:1869+200])
 Protein_PCASq=list(Q_training.keys()[2069:2069+200])
-
-#Bin dependent variables
-#try:
-#Tables+=[cutoff(table[['Overall_Survival','Remission_Duration']],130)]
-#Tables+=[binned(table[['Overall_Survival','Remission_Duration']])]
+Original=list(Q_training.keys()[:283])
 
 
 # ## Correlation of the variables
