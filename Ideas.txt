@@ -1,0 +1,1 @@
+Isolate one group as scoring set and use it to determine the convergence of the algorithm.
