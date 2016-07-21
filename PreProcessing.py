@@ -3,7 +3,7 @@
 
 # # Preprocessing
 
-# In[28]:
+# In[2]:
 
 import numpy,pandas
 if __name__=='__main__':
@@ -281,18 +281,50 @@ if __name__=='__main__':
     #A=binned(Dream9_training['Remission_Duration'])
 
 
-# In[23]:
+# In[6]:
 
 #Q_training=PreProcess(Dream9_training,Dream9)
 #Q_scoring=PreProcess(Dream9_scoring,Dream9)
-Q_training=pandas.read_csv('Qtraining.csv')
-Q_scoring=pandas.read_csv('Qscoring.csv')
-Q_Dependent=[v for v in Q_training.keys() if v not in Q_scoring.keys()]
+Q_training_temp=pandas.read_csv('Qtraining.csv')
+Q_training=Q_training_temp[Q_training_temp.keys()[1:]]
+Q_training.index=list(Q_training_temp[Q_training_temp.keys()[0]])
+
+Q_scoring_temp=pandas.read_csv('Qscoring.csv')
+Q_scoring=Q_scoring_temp[Q_scoring_temp.keys()[1:]]
+Q_scoring.index=list(Q_scoring_temp[Q_scoring_temp.keys()[0]])
+
+Dependent=[v for v in Q_training.keys() if v not in Q_scoring.keys()]
+
+
+# In[56]:
+
+27+231
+
+
+# In[59]:
+
+#Define types of variables
+
+Protein=list(Q_training.keys()[27:27+231])
+Categorical=['SEX', 'PRIOR.MAL', 'PRIOR.CHEMO', 'PRIOR.XRT', 'Infection', 
+             'ITD', 'D835', 'Ras.Stat', 'resp.simple', 'Relapse', 'vital.status'] + list(Q_training.keys()[269:283])
+Dependent=[v for v in Q_training.keys() if v not in Q_scoring.keys()]
+Q_Dependent=Dependent #Temp
+Protein_Squared=list(Q_training.keys()[283:283+231])
+Protein_Absolute=list(Q_training.keys()[514:514+231])
+Protein_Binned2=list(Q_training.keys()[745:745+231])
+Protein_Binned3=list(Q_training.keys()[976:976+231])
+Protein_Binned4=list(Q_training.keys()[1207:1207+231])
+Protein_Binned5=list(Q_training.keys()[1438:1438+231])
+Protein_PCA=list(Q_training.keys()[1669:1669+200])
+Protein_PCAWhiten=list(Q_training.keys()[1869:1869+200])
+Protein_PCASq=list(Q_training.keys()[2069:2069+200])
+Original=list(Q_training.keys()[:283])
 
 
 # ## Correlation of the variables
 
-# In[24]:
+# In[29]:
 
 if __name__=='__main__':
     #Correlation for Continuous variables
@@ -304,7 +336,7 @@ if __name__=='__main__':
     Corr.T.to_csv('Correlations.csv')
 
 
-# In[ ]:
+# In[30]:
 
 if __name__=='__main__':
     #Most important Variables in Correlation
@@ -314,7 +346,7 @@ if __name__=='__main__':
         print Corr[A.head(10).index].T[Variable]
 
 
-# In[26]:
+# In[31]:
 
 if __name__=='__main__':
     import numpy as np
@@ -341,7 +373,7 @@ if __name__=='__main__':
 
 # ## Information gain of the variables
 
-# In[27]:
+# In[32]:
 
 #Calculate how much information in gained on each column
 #Calculate the entropy of the subset
@@ -436,7 +468,7 @@ if __name__=='__main__':
     Information_Gain.to_csv('InformationGain.csv')
 
 
-# In[ ]:
+# In[33]:
 
 #Most important variables in Information Gain
 if __name__=='__main__':
@@ -448,7 +480,7 @@ if __name__=='__main__':
         print A.head()
 
 
-# In[ ]:
+# In[34]:
 
 if __name__=='__main__':
     import numpy as np

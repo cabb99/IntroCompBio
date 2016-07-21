@@ -7,8 +7,19 @@ import pandas,json
 # Parameters #
 ##############
 
+Predictor='KernelRidge'
+Repetition=1
+paralel=True
+threads=8
+max_iterations=1000
+Entities=1000  #Number of entities in the population
+
+##################
+# Initialization #
+##################
+
 #Define Prediction name
-Pname='RandomForestRegresorv2'
+Pname='%s_Rep%i'%(Predictor,Repetition)
 
 #Select Dependent Variables
 Variables_for_prediction={'pCR':'resp.simple',
@@ -16,15 +27,14 @@ Variables_for_prediction={'pCR':'resp.simple',
                           'OS':'Overall_Survival',
                           'Remission':'Remission_Duration'}
 
-#Number of entities in the population
-Entities=250
+
 
 #max_time_h= 5/60.0#Max number of hours that you can run the simulation
 
 #Select scoring measure to use for minimization
-Fast_measure='Scr' #Select between BAC PCC or Scr. You can select two Measures, 
+Fast_measure='BAC' #Select between BAC PCC or Scr. You can select two Measures, 
                        #the second measure will overwrite the first one. ('BAC','Auroc')
-n_groups =1 #The number of groups tested on each iteration. Select a small number 
+n_groups =2 #The number of groups tested on each iteration. Select a small number 
             #for the genetic algorithm and a big number to choose 
             #the final Good variables for Prediction
 
@@ -34,28 +44,37 @@ n_groups =1 #The number of groups tested on each iteration. Select a small numbe
 #              'Remission':'BAC'}
 
 #Define prediction class
-#from sklearn.kernel_ridge import KernelRidge
-#Prediction_Method=KernelRidge
-#Prediction_arguments={'alpha':'1.0'}
 
-###Linear Regression
-from sklearn.ensemble import RandomForestRegressor
-Prediction_Method=RandomForestRegressor
-Prediction_arguments={}
-binned=False
 
-#from sklearn import datasets, linear_model
-#Prediction_Method=linear_model.LinearRegression
-#Prediction_arguments={}
-#binned=False
 
-###Random Forest Classifier
-#from sklearn.ensemble import RandomForestClassifier
-#Prediction_Method=RandomForestClassifier
-#Prediction_arguments={}
-#binned=True
-paralel=True
-threads=8
+###Prediction methodology
+#import sklearn
+
+#from sklearn.ensemble import RandomForestRegressor
+if Predictor=='RandomForestRegresor':
+    from sklearn.ensemble import RandomForestRegressor
+    Prediction_Method=RandomForestRegressor
+    Prediction_arguments={}
+    binned=False
+elif Predictor=='RandomForestClassifier':
+    from sklearn.ensemble import RandomForestClassifier    
+    Prediction_Method=RandomForestClassifier
+    Prediction_arguments={}
+    binned=True
+elif Predictor=='LinearRegression':
+    from sklearn.linear_model import LinearRegression      
+    Prediction_Method=LinearRegression
+    Prediction_arguments={}
+    binned=False
+elif Predictor=='KernelRidge':
+    #Does not work    
+    from sklearn.kernel_ridge import KernelRidge 
+    Prediction_Method=KernelRidge
+    Prediction_arguments={'alpha':'1.0'}
+    binned=False
+
+
+
 
 ###########
 # Program #
@@ -98,10 +117,6 @@ def biased_sample(variables,k,bias):
     return result
 
 
-#Read prediction bias
-Initial_Var_value=pandas.DataFrame.from_csv('Variable_value.csv')
-
-
 # # Reading of previous results
 # To make the algorithm easier to use, in each iteration it saves the best prediction.
 # When it restarts it opens the results of the precious iteration.
@@ -113,50 +128,48 @@ Initial_Var_value=pandas.DataFrame.from_csv('Variable_value.csv')
 # If the files are not present it will create new variables using a biased sampling.
 # It will also include the best variables if present.
 
-if True:#Use previous prefiction bias
-    #Open Variable values if it exists
-    try:
-        Var_value=pandas.DataFrame.from_csv('Var_value_%s.csv'%Pname)
-        print 'Found previous variable values'     
-    except IOError:
-        Var_value=pandas.DataFrame.from_csv('Variable_value.csv')
-        print 'Did not found previous variable values'
-        pass
+#Use previous prefiction bias
+try: #Open Variable values if it exists
+    Var_value=pandas.DataFrame.from_csv('Var_value_%s.csv'%Pname)
+    print 'Found previous variable values'     
+except IOError:
+    Var_value=pandas.DataFrame.from_csv('Variable_value.csv')
+    print 'Did not found previous variable values'
+    pass
 
-if True: #Use Previous Population
-    #Open Population if it exists
-    try:
-        with open('Population_%s.json'%Pname) as handle:
-            Population=json.loads(handle.read())
-        print 'Found previous Population'     
-    except IOError:
-        Population=[{key:biased_sample(Var_value[key].index,random.randint(5,25),Var_value[key]) for key in Var_value.keys()} for i in range(Entities)]
-        Generation_method=[{key:'Sample' for key in Var_value.keys()}]*Entities
-        print 'Did not found previous Population'
-        pass
+#Use Previous Population
+try: #Open Population if it exists
+    with open('Population_%s.json'%Pname) as handle:
+        Population=json.loads(handle.read())
+    print 'Found previous Population'     
+except IOError:
+    Population=[{key:biased_sample(Var_value[key].index,random.randint(5,25),Var_value[key]) for key in Var_value.keys()} for i in range(Entities)]
+    Generation_method=[{key:'Sample' for key in Var_value.keys()}]*Entities
+    print 'Did not found previous Population'
+    pass
     
-if True: #Use Previous Generation_method
-    #Open GGeneration_method if it exists
-    try:
-        with open('Generation_method_%s.json'%Pname) as handle:
-            Generation_method=json.loads(handle.read())
-        print 'Found previous Generation methods'    
-    except IOError:
-        Generation_method=[{key:'Sample' for key in Var_value.keys()}]*Entities
-        print 'Did not found previous Generation methods'
-        pass
+#Use Previous Generation_method
+
+try: #Open Generation_method if it exists
+    with open('Generation_method_%s.json'%Pname) as handle:
+        Generation_method=json.loads(handle.read())
+    print 'Found previous Generation methods'    
+except IOError:
+    Generation_method=[{key:'Sample' for key in Var_value.keys()}]*Entities
+    print 'Did not found previous Generation methods'
+    pass
     
-if True: #Use Previous Good variables
-    #Open Population if it exists
-    try:
-        with open('Good_variables_%s.json'%Pname) as handle:
-            Good_variables=json.loads(handle.read())
-            Population+=[Good_variables]
-            Generation_method+=[{key:'Elitist' for key in Var_value.keys()}]
-        print 'Found previous Good variables'    
-    except IOError:
-        print 'Did not found previous Good variables'
-        pass
+#Use Previous Good variables
+    
+try: #Open Population if it exists
+    with open('Good_variables_%s.json'%Pname) as handle:
+        Good_variables=json.loads(handle.read())
+        Population+=[Good_variables]
+        Generation_method+=[{key:'Elitist' for key in Var_value.keys()}]
+    print 'Found previous Good variables'    
+except IOError:
+    print 'Did not found previous Good variables'
+    pass
 
 
 # # Genetic algorithm
@@ -202,7 +215,6 @@ try:
         for line in Log:
             if len(line)>0 and line[0]<>'#':
                 iteration=int(line.split()[0])
-                
 except IOError:
     iteration=0
 
@@ -227,6 +239,9 @@ if paralel:
     pool = Pool(threads)
     
 while True:
+    
+    if iteration>=max_iterations-1:
+        n_groups=20
 
     #Evaluate population
     Pred=AIPrediction(method=Prediction_Method(),binned=binned)
@@ -262,6 +277,10 @@ while True:
         handle.write(json.dumps(Good_variables))
     #Adaptative genetic algorithm (the rates of crossover and mutation vary according to their efficacy)
     #print Method_freq
+    
+    if iteration>=max_iterations:
+        break
+
     import numpy
     def Fpoints(x,max_x):
         return numpy.exp(-x/float(max_x)*9.0)
@@ -360,226 +379,9 @@ while True:
     with open('Generation_method_%s.json'%Pname,'w+') as handle:
         handle.write(json.dumps(Generation_method))
     iteration=iteration+1
-    
-    
 
-
-# In[ ]:
-
-print 'iter',i
+Pred=AIPrediction(pivot=Good_variables,method=Prediction_Method(),binned=binned,PredVar=Variables_for_prediction)
 Pred.pivot=Good_variables
-print Pred.result(rep=10)
-Pred.predict()
-
-
-# In[148]:
-
-Method_freq
-
-
-# In[131]:
-
-for p,m in zip(ps['pRelapse'],ms['pRelapse']):
-    print len(p)-len(set(p)),m
-len(Population),len(Generation_method)
-
-
-# In[8]:
-
-Sorted_generation_method['Remission']=[random.sample(['Crossover','Mutation','Deletion','Addition','Sample','Elitist'],1)[0] for i in range(50)]
-
-
-# In[70]:
-
-for dep in Method_freq.keys():
-    l=float(len(Sorted_generation_method[dep]))
-    m=float(len(Method_freq[dep].keys()))
-    max_points=sum(Fpoints(i,l) for i in range(int(l)))
-    for method in Method_freq[dep].keys():
-        points=0
-        c=0
-        for i,gm in enumerate(Sorted_generation_method[dep]): 
-            if gm==method:
-                points+=Fpoints(i,l)
-                print l,m
-                c=c+1
-        #print points
-        #expected_points=max_points/float(c) if c>0 else 0
-        Method_freq[dep][method]=int(round(1+points/max_points*(l-m)))
-    for i in range(Entities+10):
-        if sum(Method_freq[dep])<Entities:
-            Method_freq[dep][random.sample(Method_freq[dep].keys(),1)[0]]+=1
-        elif sum(Method_freq[dep])>Entities:
-            meth=random.sample(Method_freq[dep].keys(),1)[0]
-            if Method_freq[dep][meth]>1:
-                Method_freq[dep][meth]-=1
-        else:
-            break
-	print i,Entities,meth        
-	assert i<Entities+8,'Can not obtain just %i'%meth
-Method_freq
-        
-
-
-# In[39]:
-
-T=[]
-for i in range(10000):
-    T+=[int(random.random()**3*50/2)]
-import matplotlib as mpl
-get_ipython().magic(u'matplotlib inline')
-mpl.pyplot.hist(T,bins=25)
-
-
-# In[94]:
-
-import time
-print time.ctime()
-dir(time)
-
-
-# In[6]:
-
-#Define Best Prediction
-Pred.pivot=Good_variables
-groups=Pred.create_groups(10)
-Best_scores=Pred.score(groups=groups,Measure=tuple(set(Slow_measure.values())))
-Best_result=Pred.accuracy(groups=groups,Measure=Fast_measure)
-
-
-# In[8]:
-
-#Evolution algorithm
-import time,json
-
-Stop=time.time()+60*60*max_time_h #Stop time in seconds
-i=0 #Iteration number counter
-while time.time()<Stop:  
-    Update_Best=False #Only update best if conditions apply
-    i=i+1
-    #print i
-    #Select Test variables
-    Test_variables={}
-    change_variables={}
-    change={}
-    for key in Good_variables.keys():
-        Rnd=random.random()
-        if Rnd>0.65: #Sometimes drop a variable
-            l=len(Good_variables[key])
-            n=min(l-random.randint(1,5),1)
-            change.update({key:'remove'})
-            new_variables=biased_sample(Good_variables[key],n,1/(Var_value[key]+1))
-            change_variables.update({key:[v for v in Good_variables[key] if v not in new_variables]})
-            Test_variables.update({key:new_variables})
-        elif Rnd>0.1: #Sometimes add a variable
-            varis=[v for v in Var_value[key].index if v not in Good_variables[key]]
-            l=len(varis)
-            n=min(random.randint(1,5),l)
-            change.update({key:'add'})
-            change_variables.update({key:biased_sample(varis,n,Var_value[key])})
-            new_variables=Good_variables[key]+change_variables[key]
-            Test_variables.update({key:new_variables})
-        else: #Sometimes choose something completely random
-            l=min(len(Var_value[key].index),len(Good_variables[key])*2)
-            change.update({key:'try'})
-            new_variables=biased_sample(varis,random.randint(1,l),Var_value[key])
-            change_variables.update({key:new_variables})
-            Test_variables.update({key:new_variables})
-        #print key,change, change_variables[key]
-
-    #Update Test_variables
-    Pred.pivot=Test_variables
-    try:
-        Test_result=Pred.accuracy(groups=groups[:2],Measure=Fast_measure) #Fast measure
-    except KeyError:
-        groups=Pred.create_groups(10)
-        continue
-        
-    #Test against best prediction
-    Next=True
-    rew={}
-    for key in Good_variables.keys():
-        rew.update({key:1.0})
-        if Test_result[key]>Best_result[key]:
-            Next=False
-            if change[key]=='add':
-                rew.update({key:1.05})
-            elif change[key]=='remove':
-                rew.update({key:0.95})
-            elif change[key]=='try':
-                rew.update({key:1.02})
-            else:
-                raise 'Undefined change'       
-        else:
-            if change[key]=='add':
-                rew.update({key:0.9})
-            elif change[key]=='remove':
-                rew.update({key:1.1})
-            elif change[key]=='try':
-                rew.update({key:0.98})
-            else:
-                raise 'Undefined change'
-    
-    #Update bias weights
-    for key in Good_variables.keys():
-        for var in change_variables[key]:
-            if Var_value[key][var]>0.02 and Var_value[key][var]<2.0:
-                Var_value[key][var]*=rew[key]
-            if Var_value[key][var]<0.02:
-                Var_value[key][var]=0.02
-            if Var_value[key][var]>2.0:
-                Var_value[key][var]=2.0
-    #Write to csv
-    Var_value.to_csv('Var_value_%s.csv'%Pname)
-    
-    #Continue with next if it did not improve
-    if Next:
-        continue
-    
-    #Test how many times it has a better result
-    Test_scores=Pred.score(groups=groups,Measure=tuple(set(Slow_measure.values())))
-    for key in Test_scores.keys():
-        conf=0.0
-        new_BACs=Test_scores[key][Slow_measure[key]]
-        old_BACs=Best_scores[key][Slow_measure[key]]
-        new_BACs.sort()
-        old_BACs.sort()
-        pos=0.0
-        tot=float(len(new_BACs)**2)
-        for new in new_BACs:
-            for k,old in enumerate(old_BACs):
-                if old>new:
-                    pos+=k
-                    break
-        conf=pos/tot
-        #If more than 60% are better, update
-        if conf>0.6:
-            with open('Log_%s.txt'%Pname,'a+') as handle:
-                handle.write('Updated: '+key+'\n')
-            Good_variables.update({key:Test_variables[key]})
-            Update_Best=True
-    
-    #Update variables
-    if Update_Best:
-        Pred.pivot=Good_variables
-        groups=Pred.create_groups(10)
-        Best_result=Pred.accuracy(groups=groups)
-        Best_scores=Pred.score(groups=groups,Measure=tuple(set(Slow_measure.values())))
-        with open('Log_%s.txt'%Pname,'a+') as handle:
-            handle.write(str(Good_variables)+'\n')
-            handle.write(str(Best_result)+'\n')
-        with open('Good_variables_%s.json'%Pname,'w+') as handle:
-            handle.write(json.dumps(Good_variables))
-
-
-# In[9]:
-
-print 'iter',i
-Pred.pivot=Good_variables
-print Pred.result(rep=10)
-
-
-# In[10]:
-
-Pred.predict()
-
+groups=Pred.create_groups(50)
+print Pred.result(groups=groups)
+Pred.predict(out='Prediction_%s.csv'%Pname)
